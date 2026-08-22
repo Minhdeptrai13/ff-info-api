@@ -196,7 +196,10 @@ def not_found(e):
     return jsonify({
         "error": "Route not found",
         "path": request.path,
-        "hint": "Try /get?uid=<your_uid>"
+        "matched_path": request.headers.get('x-matched-path'),
+        "forwarded_uri": request.headers.get('x-forwarded-uri'),
+        "all_headers": dict(request.headers),
+        "args": dict(request.args)
     }), 404
 
 # === Startup ===
