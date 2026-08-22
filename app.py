@@ -134,9 +134,16 @@ def cached_endpoint(ttl=300):
 
 # === Flask Routes ===
 @app.route('/')
+@app.route('/api')
+@app.route('/api/index')
+@app.route('/api/index.py')
 def home():
-    return "Silent Exploit Api is live now Dev : Vexqor !!", 200
+    return jsonify({"status": "online", "message": "Silent Exploit Free Fire API is running!"}), 200
+
 @app.route('/get')
+@app.route('/api/get')
+@app.route('/api/index/get')
+@app.route('/api/index.py/get')
 @cached_endpoint()
 def get_account_info():
     region = request.args.get('region')
@@ -144,7 +151,7 @@ def get_account_info():
 
     # Pehle basic validation
     if not uid:
-        return jsonify({"error": "Please provide UID."}), 400
+        return jsonify({"error": "Please provide UID. Example: /get?uid=12345678"}), 400
 
     if not region:
         for reg in SUPPORTED_REGIONS:
@@ -170,15 +177,24 @@ def get_account_info():
 
     except Exception as e:
         # Agar koi error aaye toh yeh catch karega
-        return jsonify({"error": "Invalid UID or Region. Please check and try again."}), 500
+        return jsonify({"error": f"Invalid UID or Region. Details: {e}"}), 500
 
 @app.route('/refresh', methods=['GET','POST'])
+@app.route('/api/refresh')
 def refresh_tokens_endpoint():
     try:
         asyncio.run(initialize_tokens())
         return jsonify({'message':'Tokens refreshed for all regions.'}),200
     except Exception as e:
         return jsonify({'error': f'Refresh failed: {e}'}),500
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({
+        "error": "Route not found",
+        "path": request.path,
+        "hint": "Try /get?uid=<your_uid>"
+    }), 404
 
 # === Startup ===
 async def startup():
