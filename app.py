@@ -155,38 +155,51 @@ def home():
 @app.route('/api/index.py/get')
 @cached_endpoint()
 def get_account_info():
-    region = request.args.get('region')
     uid = request.args.get('uid')
-
-    # Pehle basic validation
     if not uid:
-        return jsonify({"error": "Please provide UID. Example: /get?uid=12345678"}), 400
+        return jsonify({"error": "Vui lòng cung cấp UID. Ví dụ: /get?uid=1415982711"}), 400
 
-    if not region:
-        for reg in SUPPORTED_REGIONS:
-                try:
-                    return_data = asyncio.run(GetAccountInformation(uid, "7", reg, "/GetPlayerPersonalShow"))
-                    formatted_json = json.dumps(return_data, indent=2, ensure_ascii=False)
-                    return formatted_json, 200, {
-                        'Content-Type': 'application/json; charset=utf-8',
-                        'X-Detected-Region': reg
-                    }
-                except Exception:
-                    continue
-        return jsonify({"error": "UID not found in any supported region."}), 404
+    uid = uid.strip()
+    # Mặc định ưu tiên máy chủ Việt Nam (VN), tránh nhầm sang acc quốc tế trùng UID
+    region = request.args.get('region', 'VN').upper().strip()
 
-        
     try:
-        # API call
         return_data = asyncio.run(GetAccountInformation(uid, "7", region, "/GetPlayerPersonalShow"))
+        
+        if not return_data or "basicInfo" not in return_data:
+            return jsonify({
+                "error": f"Không tìm thấy tài khoản UID {uid} trên khu vực {region}.",
+                "uid": uid,
+                "region": region
+            }), 404
 
-        # Agar data mila toh usko beautify karke bhejo
         formatted_json = json.dumps(return_data, indent=2, ensure_ascii=False)
-        return formatted_json, 200, {'Content-Type': 'application/json; charset=utf-8'}
+        return formatted_json, 200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Region': region
+        }
+
+    except RuntimeError as e:
+        err_msg = str(e)
+        if "429" in err_msg:
+            return jsonify({
+                "error": f"Máy chủ Garena khu vực {region} đang bận (Rate Limit 429). Vui lòng thử lại sau ít giây!",
+                "status_code": 429,
+                "uid": uid,
+                "region": region
+            }), 429
+        return jsonify({
+            "error": f"Lỗi từ máy chủ Garena: {err_msg}",
+            "uid": uid,
+            "region": region
+        }), 500
 
     except Exception as e:
-        # Agar koi error aaye toh yeh catch karega
-        return jsonify({"error": f"Invalid UID or Region. Details: {e}"}), 500
+        return jsonify({
+            "error": f"Không thể tra cứu UID {uid} trên khu vực {region}. Chi tiết: {e}",
+            "uid": uid,
+            "region": region
+        }), 500
 
 @app.route('/refresh', methods=['GET','POST'])
 @app.route('/api/refresh')
