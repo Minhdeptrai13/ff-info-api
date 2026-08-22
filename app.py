@@ -133,14 +133,16 @@ def cached_endpoint(ttl=300):
     return decorator
 
 @app.route('/')
+@app.route('/api')
+@app.route('/api/index')
+@app.route('/api/index.py')
 def home():
+    if request.args.get('uid'):
+        return get_account_info()
     return jsonify({
         "status": "online",
         "message": "Silent Exploit Free Fire API is running!",
-        "path": request.path,
-        "x_matched_path": request.headers.get('x-matched-path'),
-        "x_forwarded_uri": request.headers.get('x-forwarded-uri'),
-        "query": dict(request.args)
+        "usage": "Add ?uid=<player_uid> or call /get?uid=<player_uid>"
     }), 200
 
 @app.route('/get')
