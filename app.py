@@ -19,7 +19,7 @@ MAIN_KEY = base64.b64decode('WWcmdGMlREV1aDYlWmNeOA==')
 MAIN_IV = base64.b64decode('Nm95WkRyMjJFM3ljaGpNJQ==')
 RELEASEVERSION = "OB54"
 USERAGENT = "ART/2.2.0 (Linux; U; Android 14; SAMSUNG_S25 Build/UP1A.240905.001)"
-SUPPORTED_REGIONS = {"IND", "BR", "US", "SAC", "NA", "SG", "RU", "ID", "TW", "VN", "TH", "ME", "PK", "CIS", "BD", "EUROPE"}
+SUPPORTED_REGIONS = ["VN", "TH", "ID", "SG", "TW", "IND", "BD", "PK", "RU", "CIS", "ME", "BR", "US", "NA", "SAC", "EUROPE"]
 
 # === Flask App Setup ===
 app = Flask(__name__)
@@ -123,11 +123,15 @@ def cached_endpoint(ttl=300):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*a, **k):
-            key = (request.path, tuple(request.args.items()))
-            if key in cache:
+            uid = request.args.get('uid', '').strip()
+            region = (request.args.get('region') or '').upper().strip()
+            key = f"ff_acc_{uid}_{region}"
+            if uid and key in cache:
                 return cache[key]
             res = fn(*a, **k)
-            cache[key] = res
+            # Only cache successful results (200 OK)
+            if uid and (isinstance(res, tuple) and res[1] == 200 or not isinstance(res, tuple)):
+                cache[key] = res
             return res
         return wrapper
     return decorator
