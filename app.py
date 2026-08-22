@@ -132,13 +132,16 @@ def cached_endpoint(ttl=300):
         return wrapper
     return decorator
 
-# === Flask Routes ===
 @app.route('/')
-@app.route('/api')
-@app.route('/api/index')
-@app.route('/api/index.py')
 def home():
-    return jsonify({"status": "online", "message": "Silent Exploit Free Fire API is running!"}), 200
+    return jsonify({
+        "status": "online",
+        "message": "Silent Exploit Free Fire API is running!",
+        "path": request.path,
+        "x_matched_path": request.headers.get('x-matched-path'),
+        "x_forwarded_uri": request.headers.get('x-forwarded-uri'),
+        "query": dict(request.args)
+    }), 200
 
 @app.route('/get')
 @app.route('/api/get')
